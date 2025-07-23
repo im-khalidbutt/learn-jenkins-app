@@ -65,7 +65,7 @@ pipeline {
                     }
                     post {
                         always {
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright Local Report', reportTitles: '', useWrapperFileDirectly: true])
                         }
                     }
                 }
@@ -89,10 +89,31 @@ pipeline {
                 node_modules/.bin/netlify deploy --prod --dir=build --site=$NETLIFY_SITE_ID --no-build
                ''' 
             }
-        } 
-        
+        }
 
+        stage('Prod E2E') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                    reuseNode true
+                }
+            }
+
+            environment {
+                NETLIFY_SITE_ID = 'ea85029a-9755-446b-92f2-0fdde8017bb0'
+                NETLIFY_AUTH_TOKEN = credentials('netlify-token')
+                CI_ENVIRONMENT_URL = 'https://subtle-dango-185c45.netlify.app'
+            }
+            steps {
+            sh '''
+                npx playwright test --reporter=html
+            ''' 
+            }
+            post {
+                always {
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright E2E prod', reportTitles: '', useWrapperFileDirectly: true])
+                }
+            }
+        }
     }
-
-    
 }
