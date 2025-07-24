@@ -103,7 +103,7 @@ pipeline {
             }
 
             environment {
-                CI_ENVIRONMENT_URL = "STAGING_URL_TO_SET"
+                CI_ENVIRONMENT_URL = "STAGING_URL_TO_SETS"
             }
             steps {
             sh '''
