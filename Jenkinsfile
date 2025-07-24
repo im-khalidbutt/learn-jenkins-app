@@ -85,11 +85,39 @@ pipeline {
                 node_modules/.bin/netlify --version
                 echo "deploying to prod site id: $NETLIFY_SITE_ID"
                 node_modules/.bin/netlify status
-                node_modules/.bin/netlify deploy --dir=build --no-build --json
-                node_modules/.bin/node-jq -r .deploy_url deploy-output.json
+                node_modules/.bin/netlify deploy --dir=build --no-build --json > deploy-output.json
+                node_modules/.bin/node-jq -r '.deploy_url' deploy-output.json
                ''' 
+                script {
+                    env.STAGING_URL = sh(script:"node_modules/.bin/node-jq -r '.deploy_url' deploy-output.json", returnStdout: true)
+                }
             }
         }
+
+
+        stage('Staging E2E') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                    reuseNode true
+                }
+            }
+
+            environment {
+                CI_ENVIRONMENT_URL = "${env.STAGING_URL}"
+            }
+            steps {
+            sh '''
+                npx playwright test --reporter=html
+            ''' 
+            }
+            post {
+                always {
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright E2E staging', reportTitles: '', useWrapperFileDirectly: true])
+                }
+            }
+        }
+
 
         stage('Approval') {
             steps {
@@ -126,8 +154,6 @@ pipeline {
             }
 
             environment {
-                NETLIFY_SITE_ID = 'ea85029a-9755-446b-92f2-0fdde8017bb0'
-                NETLIFY_AUTH_TOKEN = credentials('netlify-token')
                 CI_ENVIRONMENT_URL = 'https://subtle-dango-185c45.netlify.app'
             }
             steps {
