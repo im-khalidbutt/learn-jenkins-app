@@ -127,7 +127,7 @@ pipeline {
             }
         }
 
-        stage('Deploy Prod') {
+        /* stage('Deploy Prod') {
             agent {
                 docker {
                     image 'node:18-alpine'
@@ -143,9 +143,9 @@ pipeline {
                 node_modules/.bin/netlify deploy --prod --dir=build --site=$NETLIFY_SITE_ID --no-build
                ''' 
             }
-        }
+        } */
 
-        stage('Prod E2E') {
+        stage('Deploy Prod') {
             agent {
                 docker {
                     image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
@@ -158,6 +158,12 @@ pipeline {
             }
             steps {
             sh '''
+                node --version
+                npm install netlify-cli
+                node_modules/.bin/netlify --version
+                echo "deploying to prod site id: $NETLIFY_SITE_ID"
+                node_modules/.bin/netlify status
+                node_modules/.bin/netlify deploy --prod --dir=build --site=$NETLIFY_SITE_ID --no-build
                 npx playwright test --reporter=html
             ''' 
             }
